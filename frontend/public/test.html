@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitnessAI API 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 3px;
+            white-space: pre-wrap;
+        }
+        .success { background-color: #d4edda; }
+        .error { background-color: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>FitnessAI API 连接测试</h1>
+
+    <div class="test-section">
+        <h2>1. 测试基本连接</h2>
+        <button onclick="testConnection()">测试连接</button>
+        <div id="connection-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 测试运动类型识别</h2>
+        <button onclick="testAllExercises()">测试所有运动类型</button>
+        <div id="exercises-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 实时日志</h2>
+        <button onclick="clearLogs()">清除日志</button>
+        <div id="logs" class="result" style="max-height: 300px; overflow-y: auto;"></div>
+    </div>
+
+    <script>
+        // 重写console.log以显示在页面上
+        const originalLog = console.log;
+        const logsDiv = document.getElementById('logs');
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            if (logsDiv) {
+                logsDiv.textContent += new Date().toLocaleTimeString() + ': ' + args.join(' ') + '\n';
+                logsDiv.scrollTop = logsDiv.scrollHeight;
+            }
+        };
+
+        function clearLogs() {
+            logsDiv.textContent = '';
+        }
+
+        async function testConnection() {
+            const resultDiv = document.getElementById('connection-result');
+            try {
+                console.log('测试基本连接...');
+                const response = await fetch('http://localhost:8080/api/exercises');
+
+                if (response.ok) {
+                    const exercises = await response.json();
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ 连接成功！\n支持的运动类型：${exercises.length}种\n` +
+                        exercises.map(e => `- ${e.name} (${e.id})`).join('\n');
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ 连接失败！状态码：${response.status}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 网络错误：${error.message}`;
+            }
+        }
+
+        async function testAllExercises() {
+            const resultDiv = document.getElementById('exercises-result');
+            const exerciseTypes = ['squat', 'pushup', 'plank', 'jumping_jack'];
+            let results = [];
+
+            for (const exerciseType of exerciseTypes) {
+                try {
+                    console.log(`测试运动类型：${exerciseType}`);
+
+                    // 1. 创建会话
+                    const sessionResponse = await fetch('http://localhost:8080/api/session/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            exercise_type: exerciseType,
+                            user_id: 'test_user'
+                        })
+                    });
+
+                    if (!sessionResponse.ok) {
+                        results.push(`❌ ${exerciseType}: 创建会话失败 (${sessionResponse.status})`);
+                        continue;
+                    }
+
+                    const sessionData = await sessionResponse.json();
+                    console.log(`${exerciseType} 会话ID:`, sessionData.session_id);
+
+                    // 2. 发送姿势数据
+                    const poseData = {
+                        pose_landmarks: Array(33).fill(null).map((_, i) => ({
+                            x: 0.1 + i * 0.01,
+                            y: 0.2 + i * 0.01,
+                            z: 0,
+                            visibility: 0.9
+                        })),
+                        exercise_type: exerciseType,
+                        session_id: sessionData.session_id
+                    };
+
+                    const analysisResponse = await fetch('http://localhost:8080/api/analytics/pose', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(poseData)
+                    });
+
+                    if (analysisResponse.ok) {
+                        const analysis = await analysisResponse.json();
+                        const recognizedType = analysis.exercise_type;
+                        const match = recognizedType === exerciseType;
+
+                        results.push(`${match ? '✅' : '⚠️'} ${exerciseType}: ` +
+                            `识别为 ${recognizedType} - ${analysis.feedback}`);
+
+                        console.log(`${exerciseType} 分析结果:`, {
+                            requested: exerciseType,
+                            recognized: recognizedType,
+                            feedback: analysis.feedback,
+                            count: analysis.count
+                        });
+                    } else {
+                        const errorText = await analysisResponse.text();
+                        results.push(`❌ ${exerciseType}: 分析失败 (${analysisResponse.status})`);
+                        console.error(`${exerciseType} 分析错误:`, errorText);
+                    }
+
+                    // 3. 结束会话
+                    await fetch(`http://localhost:8080/api/session/${sessionData.session_id}/end`, {
+                        method: 'POST'
+                    });
+
+                } catch (error) {
+                    results.push(`❌ ${exerciseType}: ${error.message}`);
+                    console.error(`${exerciseType} 测试出错:`, error);
+                }
+            }
+
+            resultDiv.className = 'result';
+            resultDiv.textContent = results.join('\n');
+        }
+
+        // 页面加载时自动测试连接
+        window.onload = () => {
+            testConnection();
+        };
+    </script>
+</body>
+</html>

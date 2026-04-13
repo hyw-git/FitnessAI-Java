@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # 后端服务（使用 Neon 云数据库）
+  backend:
+    build: ./FitnessAI-Java
+    container_name: fitnessai-backend
+    ports:
+      - "8080:8080"
+    environment:
+      # Neon 云数据库配置
+      SPRING_DATASOURCE_URL: jdbc:postgresql://ep-weathered-star-a1x699tf-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+      SPRING_DATASOURCE_USERNAME: neondb_owner
+      SPRING_DATASOURCE_PASSWORD: npg_Oqet2AQ4WlIc
+    # 利用 Actuator 进行容器健康检查
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # 前端服务
+  frontend:
+    build: ./frontend
+    container_name: fitnessai-frontend
+    ports:
+      - "3000:80"
+    environment:
+      # 在Docker环境中，使用相对路径，通过Nginx代理到后端
+      - REACT_APP_API_URL=
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+# 如果需要本地数据库（备用），取消注释以下内容：
+# ---
+#   postgres:
+#     image: postgres:15
+#     container_name: fitnessai-db-local
+#     environment:
+#       POSTGRES_DB: fitnessai
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: 123456
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#     restart: unless-stopped
+#
+# volumes:
+#   postgres_data:

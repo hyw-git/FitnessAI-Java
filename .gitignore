@@ -1,24 +1,148 @@
-# Compiled class file
+# ==========================================
+# FitnessAI 项目 .gitignore
+# ==========================================
+
+# Python 相关
+# ==========================================
+# 虚拟环境 - 非常重要！backend/venv 不应该上传
+backend/venv/
+venv/
+env/
+ENV/
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node.js / React 相关
+# ==========================================
+# node_modules 非常大，占用798MB！绝对不能上传
+frontend/node_modules/
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# 构建产物
+# ==========================================
+# build文件夹是编译后的产物，可以重新生成
+frontend/build/
+build/
+dist/
+
+# 依赖管理
+# ==========================================
+.pnp
+.pnp.js
+
+# 测试覆盖率
+# ==========================================
+coverage/
+*.lcov
+.nyc_output
+
+# IDE 和编辑器
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 操作系统文件
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# 环境变量文件
+# ==========================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Java / Maven 相关
+# ==========================================
+# 编译生成的 class 文件
+*.class
+target/
 *.class
 
-# Log file
+# Maven 编译输出目录
+target/
+FitnessAI-Java/target/
+
+# 敏感配置文件
+# ==========================================
+# application.properties 包含数据库密码等敏感信息，不应上传
+**/application.properties
+!**/application.properties.example
+FitnessAI-Java/src/main/resources/application.properties
+
+# 日志文件
+# ==========================================
 *.log
+logs/
+*.log.*
 
-# BlueJ files
-*.ctxt
+# 临时文件
+# ==========================================
+*.tmp
+*.temp
+tmp/
+temp/
 
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
+# 数据库文件（如果有）
+# ==========================================
+*.db
+*.sqlite
+*.sqlite3
 
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
+# Jupyter Notebook
+# ==========================================
+.ipynb_checkpoints
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
+# TensorFlow / ML 相关
+# ==========================================
+*.h5
+*.pb
+*.ckpt
+checkpoint
+
+# macOS 特殊文件
+# ==========================================
+**/.DS_Store
+
+# 其他
+# ==========================================
+.cache/
+.pytest_cache/
+.mypy_cache/
+.tox/
+
